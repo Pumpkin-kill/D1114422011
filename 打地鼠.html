@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>歡樂打地鼠</title>
+  <style>
+    /* 基本網頁排版 */
+    body {
+      font-family: '微軟正黑體', sans-serif;
+      text-align: center;
+      background-color: #d1f2eb;
+      margin: 0;
+      padding: 20px;
+      user-select: none; /* 防止連點時選取到文字 */
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    .info-panel {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 20px;
+      color: #2c3e50;
+    }
+
+    .info-panel span {
+      color: #e74c3c;
+    }
+
+    button {
+      font-size: 20px;
+      padding: 10px 30px;
+      background-color: #f39c12;
+      color: white;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      transition: background-color 0.2s;
+    }
+
+    button:hover {
+      background-color: #e67e22;
+    }
+
+    /* 遊戲區塊：使用 Grid 排版製作九宮格 */
+    .game-board {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #78a240; /* 草地背景 */
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: inset 0 0 15px rgba(0,0,0,0.3);
+    }
+
+    /* 地洞設計 */
+    .hole {
+      width: 100%;
+      height: 150px;
+      background-color: #5c4033; /* 泥土色 */
+      border-radius: 50% 50% 20% 20%;
+      position: relative;
+      overflow: hidden;
+      box-shadow: inset 0 20px 20px rgba(0,0,0,0.5);
+    }
+
+    /* 地鼠設計 (純 CSS 繪製) */
+    .mole {
+      width: 80px;
+      height: 100px;
+      background-color: #8b4513; /* 地鼠咖啡色 */
+      border-radius: 40px 40px 0 0;
+      position: absolute;
+      bottom: -100px; /* 預設藏在地洞下 */
+      left: 50%;
+      transform: translateX(-50%);
+      transition: bottom 0.15s ease-out; /* 冒出來的動畫速度 */
+      cursor: crosshair; /* 游標改成瞄準心 */
+    }
+
+    /* 幫地鼠加個眼睛和鼻子 */
+    .mole::before {
+      content: '';
+      position: absolute;
+      top: 25px; left: 20px; width: 10px; height: 10px; 
+      background: white; border-radius: 50%;
+      box-shadow: 30px 0 0 white; /* 第二隻眼睛 */
+    }
+    .mole::after {
+      content: '';
+      position: absolute;
+      top: 35px; left: 35px; width: 10px; height: 8px; 
+      background: black; border-radius: 50%;
+    }
+
+    /* 當地洞加上 'up' class 時，地鼠往上推 */
+    .hole.up .mole {
+      bottom: 0;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🔨 歡樂打地鼠 🔨</h1>
+  
+  <div class="info-panel">
+    時間：<span class="time">15</span> 秒 | 
+    分數：<span class="score">0</span>
+  </div>
+
+  <button onClick="startGame()">開始遊戲</button>
+
+  <br><br>
+
+  <div class="game-board">
+    <div class="hole"><div class="mole"></div></div>
+    <div class="hole"><div class="mole"></div></div>
+    <div class="hole"><div class="mole"></div></div>
+    <div class="hole"><div class="mole"></div></div>
+    <div class="hole"><div class="mole"></div></div>
+    <div class="hole"><div class="mole"></div></div>
+    <div class="hole"><div class="mole"></div></div>
+    <div class="hole"><div class="mole"></div></div>
+    <div class="hole"><div class="mole"></div></div>
+  </div>
+
+  <script>
+    const holes = document.querySelectorAll('.hole');
+    const scoreBoard = document.querySelector('.score');
+    const moles = document.querySelectorAll('.mole');
+    const timeDisplay = document.querySelector('.time');
+    
+    let lastHole;
+    let timeUp = false;
+    let score = 0;
+    let countdown;
+
+    // 產生一個介於 min 與 max 之間的隨機毫秒數 (控制地鼠出現的時間)
+    function randomTime(min, max) {
+      return Math.round(Math.random() * (max - min) + min);
+    }
+
+    // 隨機選一個地洞，並確保不會和上一個重複
+    function randomHole(holes) {
+      const idx = Math.floor(Math.random() * holes.length);
+      const hole = holes[idx];
+      if (hole === lastHole) {
+        return randomHole(holes);
+      }
+      lastHole = hole;
+      return hole;
+    }
+
+    // 讓地鼠冒出來
+    function peep() {
+      // 出現時間在 400 毫秒到 1000 毫秒之間
+      const time = randomTime(400, 1000); 
+      const hole = randomHole(holes);
+      
+      hole.classList.add('up'); // 加上 up 讓地鼠升起
+
+      // 設定時間到了之後地鼠縮回去
+      setTimeout(() => {
+        hole.classList.remove('up');
+        // 如果遊戲還沒結束，繼續呼叫下一隻地鼠
+        if (!timeUp) peep();
+      }, time);
+    }
+
+    // 開始遊戲的主流程
+    function startGame() {
+      // 1. 初始化計分與時間
+      scoreBoard.textContent = 0;
+      timeUp = false;
+      score = 0;
+      let timeLeft = 15; // 一局 15 秒
+      timeDisplay.textContent = timeLeft;
+
+      // 2. 啟動地鼠機制
+      peep();
+
+      // 3. 處理倒數計時
+      clearInterval(countdown);
+      countdown = setInterval(() => {
+        timeLeft--;
+        timeDisplay.textContent = timeLeft;
+        
+        if (timeLeft <= 0) {
+          clearInterval(countdown);
+          timeUp = true;
+          setTimeout(() => {
+            alert(`時間到！你的最終分數是: ${score} 分 👏`);
+          }, 500);
+        }
+      }, 1000);
+    }
+
+    // 敲打地鼠的動作
+    function bonk(e) {
+      if (!e.isTrusted) return; // 簡單的防弊：確保是玩家真實點擊
+      score++;
+      this.parentNode.classList.remove('up'); // 被打到就立刻縮回去
+      scoreBoard.textContent = score;
+    }
+
+    // 幫每隻地鼠綁定點擊事件
+    moles.forEach(mole => mole.addEventListener('click', bonk));
+  </script>
+
+</body>
+</html>
